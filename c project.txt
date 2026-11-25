@@ -1,0 +1,194 @@
+#include <stdio.h>
+
+// Account ka data store karne ke liye Structure
+struct Account {
+    int accNo;
+    char name; // Bina space wala single name (jaise: Rahul)
+    float balance;
+};
+
+// Functions ke declarations
+void createAccount();
+void depositMoney();
+void withdrawMoney();
+void checkBalance();
+
+int main() {
+    int choice;
+
+    // Jab tak user 5 nahi dabata, menu chalta rahega
+    while (1) {
+        printf("\n=== SIMPLE BANK SYSTEM ===\n");
+        printf("1. Create New Account\n");
+        printf("2. Deposit Money\n");
+        printf("3. Withdraw Money\n");
+        printf("4. Check Account Balance\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                createAccount();
+                break;
+            case 2:
+                depositMoney();
+                break;
+            case 3:
+                withdrawMoney();
+                break;
+            case 4:
+                checkBalance();
+                break;
+            case 5:
+                printf("Thank you for using our bank!\n");
+                return 0; // Program yahin khatam ho jayega (stdlib.h ki zaroorat nahi)
+            default:
+                printf("Galat choice! 1 se 5 ke beech number dalein.\n");
+        }
+    }
+    return 0;
+}
+
+// 1. Naya account banane ke liye
+void createAccount() {
+    struct Account acc;
+    // "a" (Append) mode: purane accounts ke neeche naya account save hoga
+    FILE *fp = fopen("bank.txt", "a");
+
+    if (fp == NULL) {
+        printf("File open nahi ho pa rahi hai!\n");
+        return;
+    }
+
+    printf("Enter Account Number: ");
+    scanf("%d", &acc.accNo);
+    printf("Enter First Name (bina space ke): ");
+    scanf("%s", acc.name);
+    printf("Enter Initial Deposit: ");
+    scanf("%f", &acc.balance);
+
+    // Text file mein data likhne ke liye fprintf ka use
+    fprintf(fp, "%d %s %.2f\n", acc.accNo, acc.name, acc.balance);
+    fclose(fp);
+
+    printf("Account successfully ban gaya!\n");
+}
+
+// 2. Paise jama (Deposit) karne ke liye
+void depositMoney() {
+    struct Account acc;
+    int searchAcc, found = 0;
+    float amount;
+
+    FILE *fp = fopen("bank.txt", "r");      // Purani file padhne ke liye
+    FILE *temp = fopen("temp.txt", "w");  // Updated data likhne ke liye temporary file
+
+    if (fp == NULL) {
+        printf("Koi account nahi mila! Pehle account banayein.\n");
+        return;
+    }
+
+    printf("Enter Account Number: ");
+    scanf("%d", &searchAcc);
+
+    // File se ek-ek line padhne ke liye fscanf ka use
+    while (fscanf(fp, "%d %s %f", &acc.accNo, acc.name, &acc.balance) != EOF) {
+        if (acc.accNo == searchAcc) {
+            printf("Enter amount to deposit: ");
+            scanf("%f", &amount);
+            acc.balance = acc.balance + amount; // Balance badha diya
+            printf("Naya Balance: %.2f\n", acc.balance);
+            found = 1;
+        }
+        // Data ko temporary file mein copy karein
+        fprintf(temp, "%d %s %.2f\n", acc.accNo, acc.name, acc.balance);
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    // Purani file hata kar temp file ko bank.txt naam de dein (dono stdio.h ke functions hain)
+    remove("bank.txt");
+    rename("temp.txt", "bank.txt");
+
+    if (!found) {
+        printf("Account number nahi mila!\n");
+    }
+}
+
+// 3. Paise nikalne (Withdraw) ke liye
+void withdrawMoney() {
+    struct Account acc;
+    int searchAcc, found = 0;
+    float amount;
+
+    FILE *fp = fopen("bank.txt", "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    if (fp == NULL) {
+        printf("Koi account nahi mila!\n");
+        return;
+    }
+
+    printf("Enter Account Number: ");
+    scanf("%d", &searchAcc);
+
+    while (fscanf(fp, "%d %s %f", &acc.accNo, acc.name, &acc.balance) != EOF) {
+        if (acc.accNo == searchAcc) {
+            printf("Enter amount to withdraw: ");
+            scanf("%f", &amount);
+            
+            if (amount > acc.balance) {
+                printf("Insufficient balance! Aapke account mein sirf %.2f hain.\n", acc.balance);
+            } else {
+                acc.balance = acc.balance - amount; // Balance ghata diya
+                printf("Withdrawal successful! Bacha hua balance: %.2f\n", acc.balance);
+            }
+            found = 1;
+        }
+        fprintf(temp, "%d %s %.2f\n", acc.accNo, acc.name, acc.balance);
+    }
+
+    fclose(fp);
+    fclose(temp);
+
+    remove("bank.txt");
+    rename("temp.txt", "bank.txt");
+
+    if (!found) {
+        printf("Account number nahi mila!\n");
+    }
+}
+
+// 4. Balance check karne ke liye
+void checkBalance() {
+    struct Account acc;
+    int searchAcc, found = 0;
+    FILE *fp = fopen("bank.txt", "r");
+
+    if (fp == NULL) {
+        printf("Koi record nahi mila!\n");
+        return;
+    }
+
+    printf("Enter Account Number: ");
+    scanf("%d", &searchAcc);
+
+    while (fscanf(fp, "%d %s %f", &acc.accNo, acc.name, &acc.balance) != EOF) {
+        if (acc.accNo == searchAcc) {
+            printf("\n--- Account Details ---\n");
+            printf("Account No: %d\n", acc.accNo);
+            printf("Name: %s\n", acc.name);
+            printf("Current Balance: %.2f\n", acc.balance);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Account number nahi mila!\n");
+    }
+
+    fclose(fp);
+}
